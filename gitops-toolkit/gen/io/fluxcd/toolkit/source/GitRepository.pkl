@@ -1,0 +1,280 @@
+/// GitRepository is the Schema for the gitrepositories API.
+///
+/// This module was generated from the CustomResourceDefinition at
+/// <https://raw.githubusercontent.com/fluxcd/source-controller/refs/tags/v1.4.1/config/crd/bases/source.toolkit.fluxcd.io_gitrepositories.yaml>.
+module io.fluxcd.toolkit.source.v1.GitRepository
+
+extends "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/K8sResource.pkl"
+
+import "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/apimachinery/pkg/apis/meta/v1/ObjectMeta.pkl"
+
+fixed apiVersion: "source.toolkit.fluxcd.io/v1"
+
+fixed kind: "GitRepository"
+
+/// Standard object's metadata.
+///
+/// More info: <https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata>.
+metadata: ObjectMeta?
+
+/// GitRepositorySpec specifies the required configuration to produce an Artifact for a Git repository.
+spec: Spec?
+
+/// GitRepositoryStatus records the observed state of a Git repository.
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+status: Status?
+
+/// GitRepositorySpec specifies the required configuration to produce an Artifact for a Git repository.
+class Spec {
+  /// Ignore overrides the set of excluded patterns in the .sourceignore format (which is the same as
+  /// .gitignore). If not provided, a default will be used, consult the documentation for your version to
+  /// find out what those are.
+  ignore: String?
+
+  /// Include specifies a list of GitRepository resources which Artifacts should be included in the
+  /// Artifact produced for this GitRepository.
+  include: Listing<ObservedInclude>?
+
+  /// Interval at which the GitRepository URL is checked for updates. This interval is approximate and
+  /// may be subject to jitter to ensure efficient use of resources.
+  interval: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$"#)))
+
+  /// Provider used for authentication, can be 'azure', 'generic'. When not specified, defaults to
+  /// 'generic'.
+  provider: ("generic"|"azure")?
+
+  /// ProxySecretRef specifies the Secret containing the proxy configuration to use while communicating
+  /// with the Git server.
+  proxySecretRef: ProxySecretRef?
+
+  /// RecurseSubmodules enables the initialization of all submodules within the GitRepository as cloned
+  /// from the URL, using their default settings.
+  recurseSubmodules: Boolean?
+
+  /// Reference specifies the Git reference to resolve and monitor for changes, defaults to the 'master'
+  /// branch.
+  ref: Ref?
+
+  /// SecretRef specifies the Secret containing authentication credentials for the GitRepository. For
+  /// HTTPS repositories the Secret must contain 'username' and 'password' fields for basic auth or
+  /// 'bearerToken' field for token auth. For SSH repositories the Secret must contain 'identity' and
+  /// 'known_hosts' fields.
+  secretRef: SecretRef?
+
+  /// Suspend tells the controller to suspend the reconciliation of this GitRepository.
+  suspend: Boolean?
+
+  /// Timeout for Git operations like cloning, defaults to 60s.
+  ///
+  /// Default if undefined: `"60s"`
+  timeout: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m))+$"#)))?
+
+  /// URL specifies the Git repository URL, it can be an HTTP/S or SSH address.
+  url: String(matches(Regex("^(http|https|ssh)://.*$")))
+
+  /// Verification specifies the configuration to verify the Git commit signature(s).
+  verify: Verify?
+}
+
+/// GitRepositoryInclude specifies a local reference to a GitRepository which Artifact (sub-)contents
+/// must be included, and where they should be placed.
+class ObservedInclude {
+  /// FromPath specifies the path to copy contents from, defaults to the root of the Artifact.
+  fromPath: String?
+
+  /// GitRepositoryRef specifies the GitRepository which Artifact contents must be included.
+  repository: ObservedIncludeRepository
+
+  /// ToPath specifies the path to copy contents to, defaults to the name of the GitRepositoryRef.
+  toPath: String?
+}
+
+/// GitRepositoryRef specifies the GitRepository which Artifact contents must be included.
+class ObservedIncludeRepository {
+  /// Name of the referent.
+  name: String
+}
+
+/// ProxySecretRef specifies the Secret containing the proxy configuration to use while communicating
+/// with the Git server.
+class ProxySecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// Reference specifies the Git reference to resolve and monitor for changes, defaults to the 'master'
+/// branch.
+class Ref {
+  /// Branch to check out, defaults to 'master' if no other field is defined.
+  branch: String?
+
+  /// Commit SHA to check out, takes precedence over all reference fields.
+  ///
+  /// This can be combined with Branch to shallow clone the branch, in which the commit is expected to
+  /// exist.
+  commit: String?
+
+  /// Name of the reference to check out; takes precedence over Branch, Tag and SemVer.
+  ///
+  /// It must be a valid Git reference: https://git-scm.com/docs/git-check-ref-format#_description
+  /// Examples: "refs/heads/main", "refs/tags/v0.1.0", "refs/pull/420/head", "refs/merge-requests/1/head"
+  name: String?
+
+  /// SemVer tag expression to check out, takes precedence over Tag.
+  semver: String?
+
+  /// Tag to check out, takes precedence over Branch.
+  tag: String?
+}
+
+/// SecretRef specifies the Secret containing authentication credentials for the GitRepository. For HTTPS
+/// repositories the Secret must contain 'username' and 'password' fields for basic auth or 'bearerToken'
+/// field for token auth. For SSH repositories the Secret must contain 'identity' and 'known_hosts'
+/// fields.
+class SecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// Verification specifies the configuration to verify the Git commit signature(s).
+class Verify {
+  /// Mode specifies which Git object(s) should be verified.
+  ///
+  /// The variants "head" and "HEAD" both imply the same thing, i.e. verify the commit that the HEAD of
+  /// the Git repository points to. The variant "head" solely exists to ensure backwards compatibility.
+  ///
+  /// Default if undefined: `"HEAD"`
+  mode: ("head"|"HEAD"|"Tag"|"TagAndHEAD")?
+
+  /// SecretRef specifies the Secret containing the public keys of trusted Git authors.
+  secretRef: VerifySecretRef
+}
+
+/// SecretRef specifies the Secret containing the public keys of trusted Git authors.
+class VerifySecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// GitRepositoryStatus records the observed state of a Git repository.
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+class Status {
+  /// Artifact represents the last successful GitRepository reconciliation.
+  artifact: Artifact?
+
+  /// Conditions holds the conditions for the GitRepository.
+  conditions: Listing<Condition>?
+
+  /// IncludedArtifacts contains a list of the last successfully included Artifacts as instructed by
+  /// GitRepositorySpec.Include.
+  includedArtifacts: Listing<IncludedArtifact>?
+
+  /// LastHandledReconcileAt holds the value of the most recent reconcile request value, so a change of
+  /// the annotation value can be detected.
+  lastHandledReconcileAt: String?
+
+  /// ObservedGeneration is the last observed generation of the GitRepository object.
+  observedGeneration: Int?
+
+  /// ObservedIgnore is the observed exclusion patterns used for constructing the source artifact.
+  observedIgnore: String?
+
+  /// ObservedInclude is the observed list of GitRepository resources used to produce the current
+  /// Artifact.
+  observedInclude: Listing<ObservedInclude>?
+
+  /// ObservedRecurseSubmodules is the observed resource submodules configuration used to produce the
+  /// current Artifact.
+  observedRecurseSubmodules: Boolean?
+
+  /// SourceVerificationMode is the last used verification mode indicating which Git object(s) have been
+  /// verified.
+  sourceVerificationMode: String?
+}
+
+/// Artifact represents the last successful GitRepository reconciliation.
+class Artifact {
+  /// Digest is the digest of the file in the form of '<algorithm>:<checksum>'.
+  digest: String(matches(Regex("^[a-z0-9]+(?:[.+_-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$")))?
+
+  /// LastUpdateTime is the timestamp corresponding to the last update of the Artifact.
+  lastUpdateTime: String
+
+  /// Metadata holds upstream information such as OCI annotations.
+  metadata: Mapping<String, String>?
+
+  /// Path is the relative file path of the Artifact. It can be used to locate the file in the root of
+  /// the Artifact storage on the local file system of the controller managing the Source.
+  path: String
+
+  /// Revision is a human-readable identifier traceable in the origin source system. It can be a Git
+  /// commit SHA, Git tag, a Helm chart version, etc.
+  revision: String
+
+  /// Size is the number of bytes in the file.
+  size: Int?
+
+  /// URL is the HTTP address of the Artifact as exposed by the controller managing the Source. It can be
+  /// used to retrieve the Artifact for consumption, e.g. by another controller applying the Artifact
+  /// contents.
+  url: String
+}
+
+/// Condition contains details for one aspect of the current state of this API Resource.
+class Condition {
+  /// lastTransitionTime is the last time the condition transitioned from one status to another. This
+  /// should be when the underlying condition changed. If that is not known, then using the time when the
+  /// API field changed is acceptable.
+  lastTransitionTime: String
+
+  /// message is a human readable message indicating details about the transition. This may be an empty
+  /// string.
+  message: String(length <= 32768)
+
+  /// observedGeneration represents the .metadata.generation that the condition was set based upon. For
+  /// instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+  /// is 9, the condition is out of date with respect to the current state of the instance.
+  observedGeneration: Int(isPositive)?
+
+  /// reason contains a programmatic identifier indicating the reason for the condition's last
+  /// transition. Producers of specific condition types may define expected values and meanings for this
+  /// field, and whether the values are considered a guaranteed API. The value should be a CamelCase
+  /// string. This field may not be empty.
+  reason: String(length.isBetween(1, 1024), matches(Regex("^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$")))
+
+  /// status of the condition, one of True, False, Unknown.
+  status: "True"|"False"|"Unknown"
+
+  /// type of condition in CamelCase or in foo.example.com/CamelCase.
+  type: String(length <= 316, matches(Regex(#"^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$"#)))
+}
+
+/// Artifact represents the output of a Source reconciliation.
+class IncludedArtifact {
+  /// Digest is the digest of the file in the form of '<algorithm>:<checksum>'.
+  digest: String(matches(Regex("^[a-z0-9]+(?:[.+_-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$")))?
+
+  /// LastUpdateTime is the timestamp corresponding to the last update of the Artifact.
+  lastUpdateTime: String
+
+  /// Metadata holds upstream information such as OCI annotations.
+  metadata: Mapping<String, String>?
+
+  /// Path is the relative file path of the Artifact. It can be used to locate the file in the root of
+  /// the Artifact storage on the local file system of the controller managing the Source.
+  path: String
+
+  /// Revision is a human-readable identifier traceable in the origin source system. It can be a Git
+  /// commit SHA, Git tag, a Helm chart version, etc.
+  revision: String
+
+  /// Size is the number of bytes in the file.
+  size: Int?
+
+  /// URL is the HTTP address of the Artifact as exposed by the controller managing the Source. It can be
+  /// used to retrieve the Artifact for consumption, e.g. by another controller applying the Artifact
+  /// contents.
+  url: String
+}

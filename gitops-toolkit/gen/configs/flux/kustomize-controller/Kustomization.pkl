@@ -1,0 +1,7 @@
+amends "@crd/generate.pkl"
+
+local ref = read("prop:ref")
+local pklK8sVersion = read("prop:pkl-k8s-version")
+
+k8sImportPath = "package://pkg.pkl-lang.org/pkl-k8s/k8s@\(pklK8sVersion)#"
+source = "https://raw.githubusercontent.com/fluxcd/kustomize-controller/refs/tags/\(ref)/config/crd/bases/kustomize.toolkit.fluxcd.io_kustomizations.yaml"

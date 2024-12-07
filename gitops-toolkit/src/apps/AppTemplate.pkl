@@ -1,0 +1,51 @@
+/// Parent for all GitOps applications.
+/// Contains common data for all types of applications
+open module AppTemplate
+
+import "../../gen/io/fluxcd/toolkit/kustomize/Kustomization.pkl"
+import "../../gen/io/fluxcd/toolkit/helm/HelmRelease.pkl"
+import "../config/ConfigCtx.pkl"
+import "../automation/Automations.pkl"
+import "../utils/Util.pkl"
+
+/// GitOps application name.
+appName: String
+
+/// Configuration context. Most of the auto-calculations suppose to use values from this config.
+config: ConfigCtx
+
+/// Application specific configuration. Actual type must be resolved in the app definition in
+/// the target GitOps repository
+appValues: unknown
+
+/// GitOps application Flux manifest
+manifest: (Kustomization|HelmRelease)
+
+/// Flux automation capabilities. Supposed to be enabled on namespace level using
+/// [Automations.withAutomation] mixin
+automation: Automations.Automation?
+
+/// List of manifests to render for given application
+files: Mapping<String, FileOutput>? = new {
+  [Util.appOutputPath(config.cluster, manifest.metadata!!, manifest.kind)] {
+    value = manifest
+    renderer = new YamlRenderer {}
+  }
+
+  when (automation != null) {
+    [Util.appOutputPath(config.cluster, automation.imageUpdate.metadata!!, automation.imageUpdate.kind)] {
+      value = automation.imageUpdate
+      renderer = new YamlRenderer {}
+    }
+
+    [Util.appOutputPath(config.cluster, automation.imagePolicy.metadata!!, automation.imagePolicy.kind)] {
+      value = automation.imagePolicy
+      renderer = new YamlRenderer {}
+    }
+  }
+}
+
+/// Patches applied to the actual instance of GitOps application before rendering.
+/// Supposed to be defined on every level of the GitOps repository.
+/// Will be applied in [GitOpsTemplate.filesToRender]
+patches: Listing<Mixin<module>>

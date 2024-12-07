@@ -1,0 +1,194 @@
+/// ImageRepository is the Schema for the imagerepositories API
+///
+/// This module was generated from the CustomResourceDefinition at
+/// <https://raw.githubusercontent.com/fluxcd/image-reflector-controller/refs/tags/v0.33.0/config/crd/bases/image.toolkit.fluxcd.io_imagerepositories.yaml>.
+module io.fluxcd.toolkit.image.v1beta2.ImageRepository
+
+extends "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/K8sResource.pkl"
+
+import "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/apimachinery/pkg/apis/meta/v1/ObjectMeta.pkl"
+
+fixed apiVersion: "image.toolkit.fluxcd.io/v1beta2"
+
+fixed kind: "ImageRepository"
+
+/// Standard object's metadata.
+///
+/// More info: <https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata>.
+metadata: ObjectMeta?
+
+/// ImageRepositorySpec defines the parameters for scanning an image repository, e.g., `fluxcd/flux`.
+spec: Spec?
+
+/// ImageRepositoryStatus defines the observed state of ImageRepository
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+status: Status?
+
+/// ImageRepositorySpec defines the parameters for scanning an image repository, e.g., `fluxcd/flux`.
+class Spec {
+  /// AccessFrom defines an ACL for allowing cross-namespace references to the ImageRepository object
+  /// based on the caller's namespace labels.
+  accessFrom: AccessFrom?
+
+  /// CertSecretRef can be given the name of a Secret containing either or both of
+  ///
+  /// - a PEM-encoded client certificate (`tls.crt`) and private key (`tls.key`); - a PEM-encoded CA
+  /// certificate (`ca.crt`)
+  ///
+  /// and whichever are supplied, will be used for connecting to the registry. The client cert and key
+  /// are useful if you are authenticating with a certificate; the CA cert is useful if you are using a
+  /// self-signed server certificate. The Secret must be of type `Opaque` or `kubernetes.io/tls`.
+  ///
+  /// Note: Support for the `caFile`, `certFile` and `keyFile` keys has been deprecated.
+  certSecretRef: CertSecretRef?
+
+  /// ExclusionList is a list of regex strings used to exclude certain tags from being stored in the
+  /// database.
+  ///
+  /// Default if undefined: `{ #"^.*\.sig$"# }`
+  exclusionList: Listing<String>(length <= 25)?
+
+  /// Image is the name of the image repository
+  image: String
+
+  /// Insecure allows connecting to a non-TLS HTTP container registry.
+  insecure: Boolean?
+
+  /// Interval is the length of time to wait between scans of the image repository.
+  interval: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$"#)))
+
+  /// The provider used for authentication, can be 'aws', 'azure', 'gcp' or 'generic'. When not
+  /// specified, defaults to 'generic'.
+  ///
+  /// Default if undefined: `"generic"`
+  provider: ("generic"|"aws"|"azure"|"gcp")?
+
+  /// ProxySecretRef specifies the Secret containing the proxy configuration to use while communicating
+  /// with the container registry.
+  proxySecretRef: ProxySecretRef?
+
+  /// SecretRef can be given the name of a secret containing credentials to use for the image registry.
+  /// The secret should be created with `kubectl create secret docker-registry`, or the equivalent.
+  secretRef: SecretRef?
+
+  /// ServiceAccountName is the name of the Kubernetes ServiceAccount used to authenticate the image pull
+  /// if the service account has attached pull secrets.
+  serviceAccountName: String(length <= 253)?
+
+  /// This flag tells the controller to suspend subsequent image scans. It does not apply to already
+  /// started scans. Defaults to false.
+  suspend: Boolean?
+
+  /// Timeout for image scanning. Defaults to 'Interval' duration.
+  timeout: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m))+$"#)))?
+}
+
+/// AccessFrom defines an ACL for allowing cross-namespace references to the ImageRepository object based
+/// on the caller's namespace labels.
+class AccessFrom {
+  /// NamespaceSelectors is the list of namespace selectors to which this ACL applies. Items in this list
+  /// are evaluated using a logical OR operation.
+  namespaceSelectors: Listing<NamespaceSelector>
+}
+
+/// NamespaceSelector selects the namespaces to which this ACL applies. An empty map of MatchLabels
+/// matches all namespaces in a cluster.
+class NamespaceSelector {
+  /// MatchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is
+  /// equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and
+  /// the values array contains only "value". The requirements are ANDed.
+  matchLabels: Mapping<String, String>?
+}
+
+/// CertSecretRef can be given the name of a Secret containing either or both of
+///
+/// - a PEM-encoded client certificate (`tls.crt`) and private key (`tls.key`); - a PEM-encoded CA
+/// certificate (`ca.crt`)
+///
+/// and whichever are supplied, will be used for connecting to the registry. The client cert and key are
+/// useful if you are authenticating with a certificate; the CA cert is useful if you are using a
+/// self-signed server certificate. The Secret must be of type `Opaque` or `kubernetes.io/tls`.
+///
+/// Note: Support for the `caFile`, `certFile` and `keyFile` keys has been deprecated.
+class CertSecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// ProxySecretRef specifies the Secret containing the proxy configuration to use while communicating
+/// with the container registry.
+class ProxySecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// SecretRef can be given the name of a secret containing credentials to use for the image registry. The
+/// secret should be created with `kubectl create secret docker-registry`, or the equivalent.
+class SecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// ImageRepositoryStatus defines the observed state of ImageRepository
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+class Status {
+  /// CanonicalName is the name of the image repository with all the implied bits made explicit; e.g.,
+  /// `docker.io/library/alpine` rather than `alpine`.
+  canonicalImageName: String?
+
+  conditions: Listing<Condition>?
+
+  /// LastHandledReconcileAt holds the value of the most recent reconcile request value, so a change of
+  /// the annotation value can be detected.
+  lastHandledReconcileAt: String?
+
+  /// LastScanResult contains the number of fetched tags.
+  lastScanResult: LastScanResult?
+
+  /// ObservedExclusionList is a list of observed exclusion list. It reflects the exclusion rules used
+  /// for the observed scan result in spec.lastScanResult.
+  observedExclusionList: Listing<String>?
+
+  /// ObservedGeneration is the last reconciled generation.
+  observedGeneration: Int?
+}
+
+/// Condition contains details for one aspect of the current state of this API Resource.
+class Condition {
+  /// lastTransitionTime is the last time the condition transitioned from one status to another. This
+  /// should be when the underlying condition changed. If that is not known, then using the time when the
+  /// API field changed is acceptable.
+  lastTransitionTime: String
+
+  /// message is a human readable message indicating details about the transition. This may be an empty
+  /// string.
+  message: String(length <= 32768)
+
+  /// observedGeneration represents the .metadata.generation that the condition was set based upon. For
+  /// instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+  /// is 9, the condition is out of date with respect to the current state of the instance.
+  observedGeneration: Int(isPositive)?
+
+  /// reason contains a programmatic identifier indicating the reason for the condition's last
+  /// transition. Producers of specific condition types may define expected values and meanings for this
+  /// field, and whether the values are considered a guaranteed API. The value should be a CamelCase
+  /// string. This field may not be empty.
+  reason: String(length.isBetween(1, 1024), matches(Regex("^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$")))
+
+  /// status of the condition, one of True, False, Unknown.
+  status: "True"|"False"|"Unknown"
+
+  /// type of condition in CamelCase or in foo.example.com/CamelCase.
+  type: String(length <= 316, matches(Regex(#"^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$"#)))
+}
+
+/// LastScanResult contains the number of fetched tags.
+class LastScanResult {
+  latestTags: Listing<String>?
+
+  scanTime: String?
+
+  tagCount: Int
+}

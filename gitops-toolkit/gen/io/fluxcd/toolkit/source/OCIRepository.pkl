@@ -1,0 +1,292 @@
+/// OCIRepository is the Schema for the ocirepositories API
+///
+/// This module was generated from the CustomResourceDefinition at
+/// <https://raw.githubusercontent.com/fluxcd/source-controller/refs/tags/v1.4.1/config/crd/bases/source.toolkit.fluxcd.io_ocirepositories.yaml>.
+module io.fluxcd.toolkit.source.v1beta2.OCIRepository
+
+extends "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/K8sResource.pkl"
+
+import "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/apimachinery/pkg/apis/meta/v1/ObjectMeta.pkl"
+
+fixed apiVersion: "source.toolkit.fluxcd.io/v1beta2"
+
+fixed kind: "OCIRepository"
+
+/// Standard object's metadata.
+///
+/// More info: <https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata>.
+metadata: ObjectMeta?
+
+/// OCIRepositorySpec defines the desired state of OCIRepository
+spec: Spec?
+
+/// OCIRepositoryStatus defines the observed state of OCIRepository
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+status: Status?
+
+/// OCIRepositorySpec defines the desired state of OCIRepository
+class Spec {
+  /// CertSecretRef can be given the name of a Secret containing either or both of
+  ///
+  /// - a PEM-encoded client certificate (`tls.crt`) and private key (`tls.key`); - a PEM-encoded CA
+  /// certificate (`ca.crt`)
+  ///
+  /// and whichever are supplied, will be used for connecting to the registry. The client cert and key
+  /// are useful if you are authenticating with a certificate; the CA cert is useful if you are using a
+  /// self-signed server certificate. The Secret must be of type `Opaque` or `kubernetes.io/tls`.
+  ///
+  /// Note: Support for the `caFile`, `certFile` and `keyFile` keys have been deprecated.
+  certSecretRef: CertSecretRef?
+
+  /// Ignore overrides the set of excluded patterns in the .sourceignore format (which is the same as
+  /// .gitignore). If not provided, a default will be used, consult the documentation for your version to
+  /// find out what those are.
+  ignore: String?
+
+  /// Insecure allows connecting to a non-TLS HTTP container registry.
+  insecure: Boolean?
+
+  /// Interval at which the OCIRepository URL is checked for updates. This interval is approximate and
+  /// may be subject to jitter to ensure efficient use of resources.
+  interval: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$"#)))
+
+  /// LayerSelector specifies which layer should be extracted from the OCI artifact. When not specified,
+  /// the first layer found in the artifact is selected.
+  layerSelector: LayerSelector?
+
+  /// The provider used for authentication, can be 'aws', 'azure', 'gcp' or 'generic'. When not
+  /// specified, defaults to 'generic'.
+  ///
+  /// Default if undefined: `"generic"`
+  provider: ("generic"|"aws"|"azure"|"gcp")?
+
+  /// ProxySecretRef specifies the Secret containing the proxy configuration to use while communicating
+  /// with the container registry.
+  proxySecretRef: ProxySecretRef?
+
+  /// The OCI reference to pull and monitor for changes, defaults to the latest tag.
+  ref: Ref?
+
+  /// SecretRef contains the secret name containing the registry login credentials to resolve image
+  /// metadata. The secret must be of type kubernetes.io/dockerconfigjson.
+  secretRef: SecretRef?
+
+  /// ServiceAccountName is the name of the Kubernetes ServiceAccount used to authenticate the image pull
+  /// if the service account has attached pull secrets. For more information:
+  /// https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#add-imagepullsecrets-to-a-service-account
+  serviceAccountName: String?
+
+  /// This flag tells the controller to suspend the reconciliation of this source.
+  suspend: Boolean?
+
+  /// The timeout for remote OCI Repository operations like pulling, defaults to 60s.
+  ///
+  /// Default if undefined: `"60s"`
+  timeout: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m))+$"#)))?
+
+  /// URL is a reference to an OCI artifact repository hosted on a remote container registry.
+  url: String(matches(Regex("^oci://.*$")))
+
+  /// Verify contains the secret name containing the trusted public keys used to verify the signature and
+  /// specifies which provider to use to check whether OCI image is authentic.
+  verify: Verify?
+}
+
+/// CertSecretRef can be given the name of a Secret containing either or both of
+///
+/// - a PEM-encoded client certificate (`tls.crt`) and private key (`tls.key`); - a PEM-encoded CA
+/// certificate (`ca.crt`)
+///
+/// and whichever are supplied, will be used for connecting to the registry. The client cert and key are
+/// useful if you are authenticating with a certificate; the CA cert is useful if you are using a
+/// self-signed server certificate. The Secret must be of type `Opaque` or `kubernetes.io/tls`.
+///
+/// Note: Support for the `caFile`, `certFile` and `keyFile` keys have been deprecated.
+class CertSecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// LayerSelector specifies which layer should be extracted from the OCI artifact. When not specified,
+/// the first layer found in the artifact is selected.
+class LayerSelector {
+  /// MediaType specifies the OCI media type of the layer which should be extracted from the OCI
+  /// Artifact. The first layer matching this type is selected.
+  mediaType: String?
+
+  /// Operation specifies how the selected layer should be processed. By default, the layer compressed
+  /// content is extracted to storage. When the operation is set to 'copy', the layer compressed content
+  /// is persisted to storage as it is.
+  operation: ("extract"|"copy")?
+}
+
+/// ProxySecretRef specifies the Secret containing the proxy configuration to use while communicating
+/// with the container registry.
+class ProxySecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// The OCI reference to pull and monitor for changes, defaults to the latest tag.
+class Ref {
+  /// Digest is the image digest to pull, takes precedence over SemVer. The value should be in the format
+  /// 'sha256:<HASH>'.
+  digest: String?
+
+  /// SemVer is the range of tags to pull selecting the latest within the range, takes precedence over
+  /// Tag.
+  semver: String?
+
+  /// SemverFilter is a regex pattern to filter the tags within the SemVer range.
+  semverFilter: String?
+
+  /// Tag is the image tag to pull, defaults to latest.
+  tag: String?
+}
+
+/// SecretRef contains the secret name containing the registry login credentials to resolve image
+/// metadata. The secret must be of type kubernetes.io/dockerconfigjson.
+class SecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// Verify contains the secret name containing the trusted public keys used to verify the signature and
+/// specifies which provider to use to check whether OCI image is authentic.
+class Verify {
+  /// MatchOIDCIdentity specifies the identity matching criteria to use while verifying an OCI artifact
+  /// which was signed using Cosign keyless signing. The artifact's identity is deemed to be verified if
+  /// any of the specified matchers match against the identity.
+  matchOIDCIdentity: Listing<MatchOIDCIdentity>?
+
+  /// Provider specifies the technology used to sign the OCI Artifact.
+  ///
+  /// Default if undefined: `"cosign"`
+  provider: "cosign"|"notation"
+
+  /// SecretRef specifies the Kubernetes Secret containing the trusted public keys.
+  secretRef: VerifySecretRef?
+}
+
+/// OIDCIdentityMatch specifies options for verifying the certificate identity, i.e. the issuer and the
+/// subject of the certificate.
+class MatchOIDCIdentity {
+  /// Issuer specifies the regex pattern to match against to verify the OIDC issuer in the Fulcio
+  /// certificate. The pattern must be a valid Go regular expression.
+  issuer: String
+
+  /// Subject specifies the regex pattern to match against to verify the identity subject in the Fulcio
+  /// certificate. The pattern must be a valid Go regular expression.
+  subject: String
+}
+
+/// SecretRef specifies the Kubernetes Secret containing the trusted public keys.
+class VerifySecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// OCIRepositoryStatus defines the observed state of OCIRepository
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+class Status {
+  /// Artifact represents the output of the last successful OCI Repository sync.
+  artifact: Artifact?
+
+  /// Conditions holds the conditions for the OCIRepository.
+  conditions: Listing<Condition>?
+
+  /// ContentConfigChecksum is a checksum of all the configurations related to the content of the source
+  /// artifact: - .spec.ignore - .spec.layerSelector observed in .status.observedGeneration version of
+  /// the object. This can be used to determine if the content configuration has changed and the artifact
+  /// needs to be rebuilt. It has the format of `<algo>:<checksum>`, for example: `sha256:<checksum>`.
+  ///
+  /// Deprecated: Replaced with explicit fields for observed artifact content config in the status.
+  contentConfigChecksum: String?
+
+  /// LastHandledReconcileAt holds the value of the most recent reconcile request value, so a change of
+  /// the annotation value can be detected.
+  lastHandledReconcileAt: String?
+
+  /// ObservedGeneration is the last observed generation.
+  observedGeneration: Int?
+
+  /// ObservedIgnore is the observed exclusion patterns used for constructing the source artifact.
+  observedIgnore: String?
+
+  /// ObservedLayerSelector is the observed layer selector used for constructing the source artifact.
+  observedLayerSelector: ObservedLayerSelector?
+
+  /// URL is the download link for the artifact output of the last OCI Repository sync.
+  url: String?
+}
+
+/// Artifact represents the output of the last successful OCI Repository sync.
+class Artifact {
+  /// Digest is the digest of the file in the form of '<algorithm>:<checksum>'.
+  digest: String(matches(Regex("^[a-z0-9]+(?:[.+_-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$")))?
+
+  /// LastUpdateTime is the timestamp corresponding to the last update of the Artifact.
+  lastUpdateTime: String
+
+  /// Metadata holds upstream information such as OCI annotations.
+  metadata: Mapping<String, String>?
+
+  /// Path is the relative file path of the Artifact. It can be used to locate the file in the root of
+  /// the Artifact storage on the local file system of the controller managing the Source.
+  path: String
+
+  /// Revision is a human-readable identifier traceable in the origin source system. It can be a Git
+  /// commit SHA, Git tag, a Helm chart version, etc.
+  revision: String
+
+  /// Size is the number of bytes in the file.
+  size: Int?
+
+  /// URL is the HTTP address of the Artifact as exposed by the controller managing the Source. It can be
+  /// used to retrieve the Artifact for consumption, e.g. by another controller applying the Artifact
+  /// contents.
+  url: String
+}
+
+/// Condition contains details for one aspect of the current state of this API Resource.
+class Condition {
+  /// lastTransitionTime is the last time the condition transitioned from one status to another. This
+  /// should be when the underlying condition changed. If that is not known, then using the time when the
+  /// API field changed is acceptable.
+  lastTransitionTime: String
+
+  /// message is a human readable message indicating details about the transition. This may be an empty
+  /// string.
+  message: String(length <= 32768)
+
+  /// observedGeneration represents the .metadata.generation that the condition was set based upon. For
+  /// instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+  /// is 9, the condition is out of date with respect to the current state of the instance.
+  observedGeneration: Int(isPositive)?
+
+  /// reason contains a programmatic identifier indicating the reason for the condition's last
+  /// transition. Producers of specific condition types may define expected values and meanings for this
+  /// field, and whether the values are considered a guaranteed API. The value should be a CamelCase
+  /// string. This field may not be empty.
+  reason: String(length.isBetween(1, 1024), matches(Regex("^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$")))
+
+  /// status of the condition, one of True, False, Unknown.
+  status: "True"|"False"|"Unknown"
+
+  /// type of condition in CamelCase or in foo.example.com/CamelCase.
+  type: String(length <= 316, matches(Regex(#"^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$"#)))
+}
+
+/// ObservedLayerSelector is the observed layer selector used for constructing the source artifact.
+class ObservedLayerSelector {
+  /// MediaType specifies the OCI media type of the layer which should be extracted from the OCI
+  /// Artifact. The first layer matching this type is selected.
+  mediaType: String?
+
+  /// Operation specifies how the selected layer should be processed. By default, the layer compressed
+  /// content is extracted to storage. When the operation is set to 'copy', the layer compressed content
+  /// is persisted to storage as it is.
+  operation: ("extract"|"copy")?
+}

@@ -1,0 +1,37 @@
+import "@gitops-toolkit/gen/io/fluxcd/toolkit/source/HelmRepository.pkl"
+import "@gitops-toolkit/src/config/ConfigCtx.pkl"
+
+const PodInfoRepositoryName = "podinfo"
+
+function Podinfo(config: ConfigCtx): HelmRepository = (repoDefaults) {
+  metadata {
+    name = PodInfoRepositoryName
+  }
+  spec {
+    url = "oci://\(config.registry)/stefanprodan/modules/podinfo"
+  }
+}
+
+const BitnamiRepositoryName = "bitnami"
+
+function Bitnami(config: ConfigCtx): HelmRepository = (repoDefaults) {
+  metadata {
+    name = BitnamiRepositoryName
+  }
+  spec {
+    url = "oci://\(config.registry)/bitnamicharts"
+  }
+}
+
+repoDefaults = (HelmRepository) {
+  spec {
+    interval = "5m"
+    accessFrom {
+      namespaceSelectors {
+        new HelmRepository.NamespaceSelector {
+          matchLabels {}
+        }
+      }
+    }
+  }
+}

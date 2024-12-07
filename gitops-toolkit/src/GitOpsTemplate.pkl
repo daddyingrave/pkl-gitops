@@ -1,0 +1,122 @@
+/// GitOpsTemplate
+open module GitOpsTemplate
+
+import "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/apimachinery/pkg/apis/meta/v1/ObjectMeta.pkl"
+import "pkl:reflect"
+import "pkl:yaml"
+import "../gen/io/fluxcd/toolkit/source/HelmRepository.pkl"
+import "apps/AppTemplate.pkl"
+import "config/ConfigCtx.pkl"
+import "utils/Util.pkl"
+
+// For now, suport only 3 layers, ideally need to support custom layers
+local path = rootModule(reflect.Module(module)).relativePathTo(module)
+local _namespace = path.getOrNull(2)!!
+local _cluster = path.getOrNull(1)!!
+local _tier = path.getOrNull(0)!!
+
+/// Holds common configuration context for all apps
+configCtx: ConfigCtx = new {
+  defaultBranch = "master"
+  cluster {
+    name = _cluster
+    tier = _tier
+  }
+  namespace {
+    name = _namespace
+  }
+}
+
+/// Must be filled with all the application supposed to be deployed into namespace
+apps: Listing<AppTemplate> = new {}
+
+/// [SopsSecret]'s to be deployed into current namespace
+sopsSecrets: Listing<SopsSecret> = new {}
+
+/// [HelmRepository]'s to be deployed into current namespace
+helmRepos: Mapping<String, HelmRepository> = new {}
+
+/// Just crutch to simulate necessity in external resource
+class SopsSecret {
+  fixed kind: "Secret"
+  metadata: ObjectMeta
+  function path(): String = "secrets/\(metadata.name).yaml"
+}
+
+local function rootModule(mod: reflect.Module): Module =
+  let (superMod = mod.supermodule)
+    if (superMod == null || !mod.isAmend) mod.reflectee
+    else rootModule(superMod)
+
+/// Collects all resources supposed to be rendered in the current namespace:
+/// - [AppTemplate]'s. For every app template applies all the defined patches
+/// - [SopsSecret]'s
+/// - [HelmRepository]'s
+function filesToRender(): Mapping<String, FileOutput> =
+  // @formatter:off
+  (
+    apps
+      .toList()
+      .map((app) -> app.patches.fold(app, (patchedApp, patch) -> patchedApp |> patch))
+      .flatMap((app) -> app.files.toMap().entries)
+      .toMap((appToFile) -> appToFile.key, (appToFile) -> appToFile.value)
+    +
+      prepareSopsSecrets(sopsSecrets)
+    +
+      prepareHelmRepositories(helmRepos)
+  ).toMapping()
+  // @formatter:on
+
+/// Prepares all [HelmRepository]'s for the namespace
+local function prepareHelmRepositories(helmRepos: Mapping<String, HelmRepository>): Map<String, FileOutput> =
+  // @formatter:off
+  helmRepos
+    .toMap()
+    .filter((_, hr) -> hr.metadata.namespace!! == module.configCtx.namespace.name)
+    .map((_, hr) ->
+      Pair(
+        Util.appOutputPath(module.configCtx.cluster, hr.metadata!!, hr.kind),
+        new FileOutput {
+          value = hr
+          renderer = new YamlRenderer {}
+        }
+      )
+    )
+  // @formatter:on
+
+/// Prepares all [SopsSecret]'s for the namespace
+local function prepareSopsSecrets(sopsSecrets: Listing<SopsSecret>): Map<String, FileOutput> =
+  // @formatter:off
+    sopsSecrets
+      .toList()
+      .filter((secret) -> secret.metadata.namespace == module.configCtx.namespace.name)
+      .toMap(
+        (secret) -> Util.appOutputPath(module.configCtx.cluster, secret.metadata, secret.kind),
+        (secret) -> patchAndRender(secret)
+      )
+  // @formatter:on
+
+/// Reads secret file from disc, patches metadata.name and metadata.namespace and provides
+/// [FileOutput] which will be rendered later
+local function patchAndRender(secret: SopsSecret): FileOutput =
+  // @formatter:off
+  let (namespacePath = reflect.Module(module).uri.split("/").dropLast(1).join("/"))
+  let (
+    secretObject = new yaml.Parser {}
+      .parse(read("\(namespacePath)/\(secret.path())"))
+      .toMap()
+      .toDynamic()
+  )
+  let (
+    patched = (secretObject) {
+      metadata {
+        name = secret.metadata.name
+        namespace = secret.metadata.namespace
+      }
+    }
+  )
+  new FileOutput {
+    value = patched
+    renderer = new YamlRenderer {}
+  }
+  // @formatter:on

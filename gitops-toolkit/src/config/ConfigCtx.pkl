@@ -1,0 +1,21 @@
+/// Common configuration context
+module ConfigCtx
+
+mod: Module
+
+cluster: Cluster = new Cluster {}
+
+namespace: Namespace = new Namespace {}
+
+defaultBranch: String
+
+registry: String
+
+class Cluster {
+  tier: String
+  name: String
+}
+
+class Namespace {
+  name: String
+}

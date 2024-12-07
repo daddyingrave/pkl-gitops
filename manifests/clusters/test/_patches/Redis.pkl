@@ -1,0 +1,7 @@
+import ".../definitions/apps/Redis.pkl"
+
+patch: Mixin<Redis.App> = ((it) ->
+    (it) {
+
+    }
+  )

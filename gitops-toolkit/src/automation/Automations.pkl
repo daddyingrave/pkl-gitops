@@ -1,0 +1,94 @@
+import "pkl:reflect"
+import "../../gen/io/fluxcd/toolkit/image/ImagePolicy.pkl"
+import "../../gen/io/fluxcd/toolkit/image/ImageUpdateAutomation.pkl"
+import "../apps/AppTemplate.pkl"
+import "../config/ConfigCtx.pkl"
+
+/// Skip docs for now
+class Automation {
+  mod: Module
+
+  appName: String
+
+  config: ConfigCtx
+
+  imagePolicy: ImagePolicy = (ImagePolicy) {
+    metadata {
+      name = appName
+      namespace = config.namespace.name
+    }
+    spec {
+      imageRepositoryRef {
+        name = appName
+        namespace = "flux-system"
+      }
+      filterTags {
+        pattern = "^${release_prefix}\\.${release}\\.(?P<sha>[a-f0-9]{7,8})\\.(?P<ts>[0-9]+)$"
+        extract = "$ts"
+      }
+      policy {
+        numerical {
+          order = "asc"
+        }
+      }
+    }
+  }
+
+  imageUpdate: ImageUpdateAutomation = (ImageUpdateAutomation) {
+    metadata {
+      name = appName
+      namespace = config.namespace.name
+    }
+
+    spec {
+      interval = "30m"
+      sourceRef {
+        kind = "GitRepository"
+        name = "flux-system"
+        namespace = "flux-system"
+      }
+      policySelector {
+        matchLabels {
+          ["app"] = appName
+          ["workflow"] = "release"
+        }
+      }
+      git {
+        commit {
+          author {
+            name = "Ivan Ivanov"
+            email = "ivan@ivanov.com"
+          }
+        }
+        push {
+          branch = "\(config.cluster.tier).\(config.cluster.name).\(config.namespace.name).\(appName)"
+          options {
+            ["merge_request.create"] = ""
+            ["merge_request.target"] = config.defaultBranch
+            ["merge_request.remove_source_branch"] = "true"
+            ["merge_request.title"] = "Automatic update for app `\(appName)` in cluster `\(config.cluster.name)` and namespace: `\(config.namespace.name)`"
+            ["merge_request.label"] = "auto-generated"
+          }
+        }
+      }
+      update {
+        path = "./clusters/" +
+            reflect.Module(mod)
+              .uri
+              .replaceFirst(Regex(#".*clusters/"#), "")
+              .replaceLast(Regex(#"[^/\\]*\.pkl$"#), "") +
+            "versions.yaml"
+      }
+    }
+  }
+}
+
+withAutomation: Mixin<AppTemplate> = ((appTemplate) ->
+    (appTemplate) {
+      automation = new Automation {
+        mod = appTemplate.config.mod
+        appName = appTemplate.appName
+        config = appTemplate.config
+      }
+    }
+  )

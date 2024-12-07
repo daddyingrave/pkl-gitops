@@ -1,0 +1,102 @@
+open module KustomizationApp
+
+extends "AppTemplate.pkl"
+
+import "../../gen/io/fluxcd/toolkit/kustomize/Kustomization.pkl"
+import "../../gen/io/fluxcd/toolkit/source/Bucket.pkl"
+import "../../gen/io/fluxcd/toolkit/source/GitRepository.pkl"
+import "../../gen/io/fluxcd/toolkit/source/OCIRepository.pkl"
+import "../utils/Util.pkl"
+import "@k8s/api/core/v1/ConfigMap.pkl"
+
+typealias KustomizeConfigSource = ("ConfigMap"|"EnvVariables")
+
+/// Defines configuration source for the KustomizationApp.
+/// For **ConfigMap** application values will be rendered as JSON and deployed using separate
+/// [ConfigMap]
+/// For **EnvVariables** some black magic will happen. It was did only as Pkl test :)
+configSource: KustomizeConfigSource = "EnvVariables"
+
+manifest: Kustomization = (Kustomization) {
+  metadata {
+    name = module.appName
+    namespace = module.config.namespace.name
+    labels {
+      ["app"] = module.appName
+    }
+  }
+  spec {
+    targetNamespace = module.config.namespace.name
+    path = "./\(module.config.cluster.tier)/\(module.config.cluster.name)/\(module.config.namespace.name)"
+    sourceRef {
+      kind = "OCIRepository"
+      name = module.appName
+    }
+    interval = "5s"
+    prune = true
+    patches = if (configSource == "EnvVariables")
+      new Listing {
+        new Kustomization.Patch {
+          target = new Kustomization.Target {
+            kind = "Deployment"
+            name = module.appName
+          }
+          patch = """
+              - op: test
+              path: /spec/template/spec/containers/0/name
+              value: capybara\n
+              """ + module.appValues.toEnvVariablesPatch("/spec/template/spec/containers/0/name")
+        }
+      } else new Listing {}
+  }
+}
+
+/// For [KustomizationApp] we need dedicated repository resource. For now [OCIRepository]
+/// only supported
+repository: (OCIRepository|GitRepository|Bucket) = (OCIRepository) {
+  metadata {
+    name = module.appName
+    namespace = module.config.namespace.name
+    labels {
+      ["app"] = module.appName
+    }
+  }
+  spec {
+    url = "oci://\(module.config.registry)/manifests/\(module.appName)"
+    ref {
+      tag = Util.readVersion(module.config.mod, module.appName)
+    }
+    interval = "20m"
+  }
+}
+
+/// ConfigMap which will be deployed if [configSource] == ConfigMap
+configMap: ConfigMap = (ConfigMap) {
+  metadata {
+    name = module.appName + "-config"
+    namespace = module.config.namespace.name
+    labels {
+      ["app"] = module.appName
+    }
+  }
+  data {
+    ["config.json"] = module.appValues.toJson()
+  }
+}
+
+/// Due to [KustomizationApp] contains more files than difened in [AppTemplate] we need to join them
+files: Mapping<String, FileOutput>? = super.files |> extraFiles
+
+/// Extra files which contains [repository] and optionally [configMap]
+local extraFiles: Mixin<Mapping<String, FileOutput>?> = new {
+  [Util.appOutputPath(config.cluster, manifest.metadata!!, repository.kind)] {
+    value = repository
+    renderer = new YamlRenderer {}
+  }
+  when (configSource == "ConfigMap") {
+    [Util.appOutputPath(module.config.cluster, manifest.metadata!!, configMap.kind)] {
+      value = configMap
+      renderer = new YamlRenderer {}
+    }
+  }
+}

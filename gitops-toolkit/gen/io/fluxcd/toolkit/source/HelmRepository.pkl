@@ -1,0 +1,209 @@
+/// HelmRepository is the Schema for the helmrepositories API.
+///
+/// This module was generated from the CustomResourceDefinition at
+/// <https://raw.githubusercontent.com/fluxcd/source-controller/refs/tags/v1.4.1/config/crd/bases/source.toolkit.fluxcd.io_helmrepositories.yaml>.
+module io.fluxcd.toolkit.source.v1.HelmRepository
+
+extends "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/K8sResource.pkl"
+
+import "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/apimachinery/pkg/apis/meta/v1/ObjectMeta.pkl"
+
+fixed apiVersion: "source.toolkit.fluxcd.io/v1"
+
+fixed kind: "HelmRepository"
+
+/// Standard object's metadata.
+///
+/// More info: <https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata>.
+metadata: ObjectMeta?
+
+/// HelmRepositorySpec specifies the required configuration to produce an Artifact for a Helm repository
+/// index YAML.
+spec: Spec?
+
+/// HelmRepositoryStatus records the observed state of the HelmRepository.
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+status: Status?
+
+/// HelmRepositorySpec specifies the required configuration to produce an Artifact for a Helm repository
+/// index YAML.
+class Spec {
+  /// AccessFrom specifies an Access Control List for allowing cross-namespace references to this object.
+  /// NOTE: Not implemented, provisional as of https://github.com/fluxcd/flux2/pull/2092
+  accessFrom: AccessFrom?
+
+  /// CertSecretRef can be given the name of a Secret containing either or both of
+  ///
+  /// - a PEM-encoded client certificate (`tls.crt`) and private key (`tls.key`); - a PEM-encoded CA
+  /// certificate (`ca.crt`)
+  ///
+  /// and whichever are supplied, will be used for connecting to the registry. The client cert and key
+  /// are useful if you are authenticating with a certificate; the CA cert is useful if you are using a
+  /// self-signed server certificate. The Secret must be of type `Opaque` or `kubernetes.io/tls`.
+  ///
+  /// It takes precedence over the values specified in the Secret referred to by `.spec.secretRef`.
+  certSecretRef: CertSecretRef?
+
+  /// Insecure allows connecting to a non-TLS HTTP container registry. This field is only taken into
+  /// account if the .spec.type field is set to 'oci'.
+  insecure: Boolean?
+
+  /// Interval at which the HelmRepository URL is checked for updates. This interval is approximate and
+  /// may be subject to jitter to ensure efficient use of resources.
+  interval: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$"#)))?
+
+  /// PassCredentials allows the credentials from the SecretRef to be passed on to a host that does not
+  /// match the host as defined in URL. This may be required if the host of the advertised chart URLs in
+  /// the index differ from the defined URL. Enabling this should be done with caution, as it can
+  /// potentially result in credentials getting stolen in a MITM-attack.
+  passCredentials: Boolean?
+
+  /// Provider used for authentication, can be 'aws', 'azure', 'gcp' or 'generic'. This field is
+  /// optional, and only taken into account if the .spec.type field is set to 'oci'. When not specified,
+  /// defaults to 'generic'.
+  ///
+  /// Default if undefined: `"generic"`
+  provider: ("generic"|"aws"|"azure"|"gcp")?
+
+  /// SecretRef specifies the Secret containing authentication credentials for the HelmRepository. For
+  /// HTTP/S basic auth the secret must contain 'username' and 'password' fields. Support for TLS auth
+  /// using the 'certFile' and 'keyFile', and/or 'caFile' keys is deprecated. Please use
+  /// `.spec.certSecretRef` instead.
+  secretRef: SecretRef?
+
+  /// Suspend tells the controller to suspend the reconciliation of this HelmRepository.
+  suspend: Boolean?
+
+  /// Timeout is used for the index fetch operation for an HTTPS helm repository, and for remote OCI
+  /// Repository operations like pulling for an OCI helm chart by the associated HelmChart. Its default
+  /// value is 60s.
+  timeout: String(matches(Regex(#"^([0-9]+(\.[0-9]+)?(ms|s|m))+$"#)))?
+
+  /// Type of the HelmRepository. When this field is set to "oci", the URL field value must be prefixed
+  /// with "oci://".
+  type: ("default"|"oci")?
+
+  /// URL of the Helm repository, a valid URL contains at least a protocol and host.
+  url: String(matches(Regex("^(http|https|oci)://.*$")))
+}
+
+/// AccessFrom specifies an Access Control List for allowing cross-namespace references to this object.
+/// NOTE: Not implemented, provisional as of https://github.com/fluxcd/flux2/pull/2092
+class AccessFrom {
+  /// NamespaceSelectors is the list of namespace selectors to which this ACL applies. Items in this list
+  /// are evaluated using a logical OR operation.
+  namespaceSelectors: Listing<NamespaceSelector>
+}
+
+/// NamespaceSelector selects the namespaces to which this ACL applies. An empty map of MatchLabels
+/// matches all namespaces in a cluster.
+class NamespaceSelector {
+  /// MatchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is
+  /// equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and
+  /// the values array contains only "value". The requirements are ANDed.
+  matchLabels: Mapping<String, String>?
+}
+
+/// CertSecretRef can be given the name of a Secret containing either or both of
+///
+/// - a PEM-encoded client certificate (`tls.crt`) and private key (`tls.key`); - a PEM-encoded CA
+/// certificate (`ca.crt`)
+///
+/// and whichever are supplied, will be used for connecting to the registry. The client cert and key are
+/// useful if you are authenticating with a certificate; the CA cert is useful if you are using a
+/// self-signed server certificate. The Secret must be of type `Opaque` or `kubernetes.io/tls`.
+///
+/// It takes precedence over the values specified in the Secret referred to by `.spec.secretRef`.
+class CertSecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// SecretRef specifies the Secret containing authentication credentials for the HelmRepository. For
+/// HTTP/S basic auth the secret must contain 'username' and 'password' fields. Support for TLS auth
+/// using the 'certFile' and 'keyFile', and/or 'caFile' keys is deprecated. Please use
+/// `.spec.certSecretRef` instead.
+class SecretRef {
+  /// Name of the referent.
+  name: String
+}
+
+/// HelmRepositoryStatus records the observed state of the HelmRepository.
+///
+/// Default if undefined: `{ ["observedGeneration"] = -1 }`
+class Status {
+  /// Artifact represents the last successful HelmRepository reconciliation.
+  artifact: Artifact?
+
+  /// Conditions holds the conditions for the HelmRepository.
+  conditions: Listing<Condition>?
+
+  /// LastHandledReconcileAt holds the value of the most recent reconcile request value, so a change of
+  /// the annotation value can be detected.
+  lastHandledReconcileAt: String?
+
+  /// ObservedGeneration is the last observed generation of the HelmRepository object.
+  observedGeneration: Int?
+
+  /// URL is the dynamic fetch link for the latest Artifact. It is provided on a "best effort" basis, and
+  /// using the precise HelmRepositoryStatus.Artifact data is recommended.
+  url: String?
+}
+
+/// Artifact represents the last successful HelmRepository reconciliation.
+class Artifact {
+  /// Digest is the digest of the file in the form of '<algorithm>:<checksum>'.
+  digest: String(matches(Regex("^[a-z0-9]+(?:[.+_-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$")))?
+
+  /// LastUpdateTime is the timestamp corresponding to the last update of the Artifact.
+  lastUpdateTime: String
+
+  /// Metadata holds upstream information such as OCI annotations.
+  metadata: Mapping<String, String>?
+
+  /// Path is the relative file path of the Artifact. It can be used to locate the file in the root of
+  /// the Artifact storage on the local file system of the controller managing the Source.
+  path: String
+
+  /// Revision is a human-readable identifier traceable in the origin source system. It can be a Git
+  /// commit SHA, Git tag, a Helm chart version, etc.
+  revision: String
+
+  /// Size is the number of bytes in the file.
+  size: Int?
+
+  /// URL is the HTTP address of the Artifact as exposed by the controller managing the Source. It can be
+  /// used to retrieve the Artifact for consumption, e.g. by another controller applying the Artifact
+  /// contents.
+  url: String
+}
+
+/// Condition contains details for one aspect of the current state of this API Resource.
+class Condition {
+  /// lastTransitionTime is the last time the condition transitioned from one status to another. This
+  /// should be when the underlying condition changed. If that is not known, then using the time when the
+  /// API field changed is acceptable.
+  lastTransitionTime: String
+
+  /// message is a human readable message indicating details about the transition. This may be an empty
+  /// string.
+  message: String(length <= 32768)
+
+  /// observedGeneration represents the .metadata.generation that the condition was set based upon. For
+  /// instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration
+  /// is 9, the condition is out of date with respect to the current state of the instance.
+  observedGeneration: Int(isPositive)?
+
+  /// reason contains a programmatic identifier indicating the reason for the condition's last
+  /// transition. Producers of specific condition types may define expected values and meanings for this
+  /// field, and whether the values are considered a guaranteed API. The value should be a CamelCase
+  /// string. This field may not be empty.
+  reason: String(length.isBetween(1, 1024), matches(Regex("^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$")))
+
+  /// status of the condition, one of True, False, Unknown.
+  status: "True"|"False"|"Unknown"
+
+  /// type of condition in CamelCase or in foo.example.com/CamelCase.
+  type: String(length <= 316, matches(Regex(#"^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$"#)))
+}

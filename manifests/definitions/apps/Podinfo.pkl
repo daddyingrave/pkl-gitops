@@ -1,0 +1,172 @@
+module Podinfo
+
+import "@gitops-toolkit/src/apps/HelmReleaseApp.pkl"
+import "@gitops-toolkit/src/config/ConfigCtx.pkl"
+
+function App(_config: ConfigCtx): App = new {
+  config = _config
+}
+
+class App extends HelmReleaseApp {
+  appName = "podinfo"
+
+  config {}
+
+  appValues: Values = new {
+    ui {
+      message = if (config.cluster.name.startsWith("kitty")) "🙀" else "🐶"
+    }
+  }
+
+  manifest {
+    spec {
+      chart {
+        spec {
+          chart = appName
+        }
+      }
+    }
+  }
+
+  patches: Listing<Mixin<App>>
+}
+
+class Values {
+  /// Specifies the number of replicas for the pod. This value controls the scaling behavior. Adjusting this can help
+  /// balance load and availability. Increasing the count can improve redundancy. Decreasing the count can reduce
+  /// resource usage.
+  replicaCount: Int = 3
+
+  /// Defines the logging level for the application.
+  /// This setting controls the verbosity of the logs. Useful for troubleshooting and monitoring. Defaults to
+  /// "warn" if not specified.
+  logLevel: ("trace"|"debug"|"info"|"warn"|"error")? = "warn"
+
+  /// The hostname for the pod. This can be used for DNS resolution within the network. Useful for services that require
+  /// a stable endpoint. If not specified, the hostname may default to a generated name. Helps in identifying and
+  /// managing the pod.
+  host: String = "127.0.0.1"
+
+  /// Backend service URL for the pod. This is the primary endpoint for backend communication. Can be used to direct
+  /// traffic to a specific service. Must be a valid URL if specified. Helps in routing requests appropriately.
+  backend: String?
+
+  /// List of backend services. Provides multiple endpoints for load balancing. Useful for high availability
+  /// configurations. Each entry should be a valid service URL. Enhances fault tolerance and distribution of load.
+  backends: Listing<String>?
+
+  /// Configuration for the pod image. Specifies details like image name and tag. Crucial for defining what software
+  /// runs in the pod. Can include registry information. Must be kept up to date with the latest version.
+  image: Image?
+
+  /// Configuration settings for the user interface. Controls various UI aspects of the application. Can include themes,
+  /// layouts, and other visual settings. Useful for customizing the look and feel. Improves user experience and
+  /// usability.
+  ui: Ui?
+
+  /// Fault injection settings for testing purposes. Used to simulate failures and test resilience. Can include various
+  /// fault types like latency, error rates, etc. Helps in improving the robustness of the system. Must be configured
+  /// carefully to avoid unintended disruptions.
+  faults: Faults?
+}
+
+const local stupidSemverRegex = Regex(#"\d+\.\d+\.\d+"#)
+
+class Image {
+  /// Repository where the image is stored. Can be a Docker Hub or a private registry. Specifies the source location of
+  /// the image. Useful for pulling the correct image version. Can include authentication details if required.
+  repository: String?
+
+  /// Tag associated with the image. Follows the semantic versioning convention. Ensures compatibility and version
+  /// control. Critical for identifying the correct build. Must match the stupidSemverRegex pattern.
+  tag: String(matches(stupidSemverRegex))
+
+  /// Policy for pulling the image. Determines when the image should be pulled. Possible values include "Always",
+  /// "IfNotPresent", and "Never". Helps in managing image updates and caching. Useful for optimizing deployment
+  /// strategies.
+  pullPolicy: String?
+}
+
+const local hexColorRegex = Regex(#"^#(?:[0-9a-fA-F]{3}){1,2}$"#)
+
+class Ui {
+  /// Color theme for the user interface. Must match the hexColorRegex pattern. Defines the primary color used in the
+  /// UI. Default value is "#34577c". Enhances the visual appeal of the application.
+  color: String(matches(hexColorRegex)) = "#34577c"
+
+  /// Custom message displayed in the UI. Can be used for notifications or banners. Supports dynamic content updates.
+  /// Helps in improving user engagement. Optional field, can be left blank.
+  message: String?
+
+  /// URL or path to the logo image. Used for branding purposes in the UI. Can be a relative path or an external URL.
+  /// Improves recognition and aesthetics. Optional field, can be left blank.
+  logo: String?
+}
+
+class Faults {
+  /// Flag to simulate delay faults. Used for testing system resilience. Can introduce artificial latency. Helps in
+  /// identifying performance bottlenecks. Optional field, defaults to false.
+  delay: Boolean?
+
+  /// Flag to simulate error faults. Triggers error conditions for testing. Useful for validating error handling
+  /// mechanisms. Helps in ensuring robustness. Optional field, defaults to false.
+  error: Boolean?
+
+  /// Flag to simulate unhealthy conditions. Used to test health check mechanisms. Can mark the pod as unhealthy. Useful
+  /// for failure recovery testing. Optional field, defaults to false.
+  unhealthy: Boolean?
+
+  /// Flag to simulate unready conditions. Tests readiness probes and startup behavior. Can mark the pod as unready.
+  /// Helps in ensuring startup reliability. Optional field, defaults to false.
+  unready: Boolean?
+
+  /// Flag to simulate test failures. Used for validating test robustness. Can trigger failure conditions during tests.
+  /// Useful for continuous integration testing. Optional field, defaults to false.
+  testFail: Boolean?
+
+  /// Flag to simulate test timeouts. Introduces artificial timeouts in tests. Useful for testing timeout handling.
+  /// Helps in identifying slow operations. Optional field, defaults to false.
+  testTimeout: Boolean?
+}
+
+class Service {
+  /// Indicates if the service is enabled. Controls whether the service is active. Useful for toggling features on and
+  /// off. Can be used for canary deployments. Optional field, defaults to false.
+  enabled: Boolean?
+
+  /// Annotations for the service. Key-value pairs for metadata. Useful for adding custom labels. Can include
+  /// information for monitoring. Optional field, can be left empty.
+  annotations: Map<String, String>?
+
+  /// Type of the service. Possible values include "ExternalName", "ClusterIP", "NodePort", and "LoadBalancer". Defines
+  /// how the service is exposed. Crucial for network configuration. Optional field, defaults to "ClusterIP".
+  type: ("ExternalName"|"ClusterIP"|"NodePort"|"LoadBalancer")?
+
+  /// Port for metrics scraping. Used by monitoring tools to collect metrics. Should be a valid port number. Helps in
+  /// performance tracking. Optional field, can be left empty.
+  metricsPort: Int?
+
+  /// Port for HTTP traffic. Primary port for web services. Should be a valid port number. Essential for HTTP-based
+  /// communication. Optional field, can be left empty.
+  httpPort: Int?
+
+  /// External port for exposing the service. Used for accessing the service from outside the cluster. Should be a valid
+  /// port number. Crucial for external connectivity. Optional field, can be left empty.
+  externalPort: Int?
+
+  /// Port for gRPC communication. Should be a valid port number. Essential for gRPC-based services. Helps in enabling
+  /// efficient communication. Optional field, can be left empty.
+  grpcPort: Int?
+
+  /// Name of the gRPC service. Specifies the gRPC service to be used. Useful for service discovery. Must match the
+  /// service name definition. Optional field, can be left empty.
+  grpcService: String?
+
+  /// Node port for exposing the service. Used in "NodePort" type services. Should be a valid port number. Enables
+  /// direct access via node IP. Optional field, can be left empty.
+  nodePort: Int?
+
+  /// Host port for exposing the service. Binds the service to a specific port on the host. Should be a valid port
+  /// number. Useful for host-level networking. Optional field, can be left empty.
+  hostPort: Int?
+}

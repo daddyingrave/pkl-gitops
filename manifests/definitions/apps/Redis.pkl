@@ -1,0 +1,241 @@
+module Redis
+
+import "@gitops-toolkit/src/apps/HelmReleaseApp.pkl"
+import "@gitops-toolkit/src/config/ConfigCtx.pkl"
+
+function App(_config: ConfigCtx): App = new {
+  config = _config
+}
+
+class App extends HelmReleaseApp {
+  appName = "redis"
+
+  appValues: Values = new {
+    master {
+      startupProbe {
+        enabled = false
+      }
+    }
+  }
+
+  manifest {
+    spec {
+      chart {
+        spec {
+          chart = appName
+        }
+      }
+    }
+  }
+
+  patches: Listing<Mixin<App>>
+}
+
+class Values {
+  global: Global?
+  kubeVersion: String?
+  nameOverride: String?
+  fullnameOverride: String?
+  namespaceOverride: String?
+  commonLabels: Dynamic?
+  commonAnnotations: Dynamic?
+  secretAnnotations: Dynamic?
+  clusterDomain: String = "cluster.local"
+  extraDeploy: List<Dynamic>?
+  useHostnames: Boolean = true
+  nameResolutionThreshold: Int = 5
+  nameResolutionTimeout: Int = 5
+  diagnosticMode: DiagnosticMode
+  image: Image
+  architecture: String = "replication"
+  auth: Auth
+  commonConfiguration: String?
+  existingConfigmap: String?
+  master: Master
+}
+
+class Global {
+  imageRegistry: String?
+  imagePullSecrets: Listing<String>?
+  defaultStorageClass: String?
+  storageClass: String?
+  redis: Redis?
+  compatibility: Compatibility?
+}
+
+class Redis {
+  password: String?
+}
+
+class Compatibility {
+  openshift: Openshift?
+}
+
+class Openshift {
+  /// Adapt the securityContext sections of the deployment to make them compatible with Openshift restricted-v2 SCC: remove runAsUser, runAsGroup and fsGroup and let the platform use their allowed default IDs. Possible values: auto (apply if the detected running cluster is Openshift), force (perform the adaptation always), disabled (do not perform adaptation)
+  adaptSecurityContext: String = "auto"
+}
+
+class DiagnosticMode {
+  /// Enable diagnostic mode (all probes will be disabled and the command will be overridden)
+  enabled: Boolean = false
+  /// Command to override all containers in the deployment
+  command: Listing<String> = new Listing { "sleep" }
+  /// Args to override all containers in the deployment
+  args: Listing<String> = new Listing { "infinity" }
+}
+
+class Image {
+  /// Redis&reg; image registry
+  registry: String = "docker.io"
+  /// Redis&reg; image repository
+  repository: String = "bitnami/redis"
+  tag: String = "7.4.1-debian-12-r2"
+  /// Redis&reg; image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
+  digest: String?
+  /// Redis&reg; image pull policy
+  pullPolicy: String = "IfNotPresent"
+  /// Redis&reg; image pull secrets
+  pullSecrets: Listing<String>?
+  /// Enable image debug mode
+  debug: Boolean = false
+}
+
+class Auth {
+  /// Enable password authentication
+  enabled: Boolean = true
+  /// Enable password authentication on sentinels too
+  sentinel: Boolean = true
+  /// Redis&reg; password
+  /// Defaults to a random 10-character alphanumeric string if not set
+  password: String?
+  /// The name of an existing secret with Redis&reg; credentials
+  /// NOTE: When it's set, the previous `auth.password` parameter is ignored
+  existingSecret: String?
+  /// Password key to be retrieved from existing secret
+  /// NOTE: ignored unless `auth.existingSecret` parameter is set
+  existingSecretPasswordKey: String?
+  /// Mount credentials as files instead of using an environment variable
+  usePasswordFiles: Boolean = false
+  /// Mount password file from secret
+  usePasswordFileFromSecret: Boolean = true
+}
+
+class Master {
+  /// Number of Redis&reg; master instances to deploy (experimental, requires additional configuration)
+  count: Int = 1
+  /// The number of old history to retain to allow rollback
+  /// NOTE: Explicitly setting this field to 0, will result in cleaning up all the history, breaking ability to rollback
+  revisionHistoryLimit: Int = 10
+  /// Configuration for Redis&reg; master nodes
+  configuration: String?
+  /// Array with Redis&reg; commands to disable on master nodes
+  disableCommands: Listing<String> = new Listing { "FLUSHDB" "FLUSHALL" }
+  command: Listing<String>?
+  args: Listing<String>?
+  /// Whether information about services should be injected into pod's environment variable
+  enableServiceLinks: Boolean = true
+  /// Additional commands to run prior to starting Redis&reg; master
+  preExecCmds: Listing<String>?
+  /// Array with additional command line flags for Redis&reg; master
+  extraFlags: Listing<String>?
+  extraEnvVars: List<Dynamic>?
+  /// Name of existing ConfigMap containing extra env vars for Redis&reg; master nodes
+  extraEnvVarsCM: String?
+  /// Name of existing Secret containing extra env vars for Redis&reg; master nodes
+  extraEnvVarsSecret: String?
+  containerPorts: ContainerPorts
+  startupProbe: Probe
+  livenessProbe: Probe
+  readinessProbe: Probe
+  customStartupProbe: Dynamic?
+  customLivenessProbe: Dynamic?
+  customReadinessProbe: Dynamic?
+  /// Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if master.resources is set (master.resources is recommended for production).
+  resourcesPreset: String = "nano"
+  resources: Dynamic?
+  podSecurityContext: PodSecurityContext
+  containerSecurityContext: ContainerSecurityContext
+  /// Use either Deployment, StatefulSet (default) or DaemonSet
+  kind: String = "StatefulSet"
+  /// Alternate scheduler for Redis&reg; master pods
+  schedulerName: String?
+  updateStrategy: UpdateStrategy
+  /// How many seconds a pod needs to be ready before killing the next, during update
+  minReadySeconds: Int = 0
+  /// Redis&reg; master pods' priorityClassName
+  priorityClassName: String?
+  /// Mount Service Account token in pod
+  automountServiceAccountToken: Boolean = false
+  /// Redis&reg; master pods host aliases
+  hostAliases: List<Dynamic>?
+  /// Extra labels for Redis&reg; master pods
+  podLabels: Dynamic?
+  /// Annotations for Redis&reg; master pods
+  podAnnotations: Dynamic?
+  /// Share a single process namespace between all of the containers in Redis&reg; master pods
+  shareProcessNamespace: Boolean = false
+  /// Pod affinity preset. Ignored if `master.affinity` is set. Allowed values: `soft` or `hard`
+  podAffinityPreset: String?
+}
+
+class ContainerPorts {
+  /// Container port to open on Redis&reg; master nodes
+  redis: Int = 6379
+}
+
+class Probe {
+  enabled: Boolean = true
+  initialDelaySeconds: Int = 20
+  periodSeconds: Int = 5
+  timeoutSeconds: Int = 5
+  failureThreshold: Int = 1
+  successThreshold: Int = 1
+}
+
+class PodSecurityContext {
+  /// Enabled Redis&reg; master pods' Security Context
+  enabled: Boolean = true
+  /// Set filesystem group change policy
+  fsGroupChangePolicy: String = "Always"
+  /// Set kernel settings using the sysctl interface
+  sysctls: Listing<String>?
+  /// Set filesystem extra groups
+  supplementalGroups: List<Int>?
+  /// Set Redis&reg; master pod's Security Context fsGroup
+  fsGroup: Int = 1001
+}
+
+class ContainerSecurityContext {
+  /// Enabled Redis&reg; master containers' Security Context
+  enabled: Boolean = true
+  /// Set SELinux options in container
+  seLinuxOptions: Dynamic?
+  /// Set Redis&reg; master containers' Security Context runAsUser
+  runAsUser: Int = 1001
+  /// Set Redis&reg; master containers' Security Context runAsGroup
+  runAsGroup: Int = 1001
+  /// Set Redis&reg; master containers' Security Context runAsNonRoot
+  runAsNonRoot: Boolean = true
+  /// Is it possible to escalate Redis&reg; pod(s) privileges
+  allowPrivilegeEscalation: Boolean = false
+  /// Set container's Security Context read-only root filesystem
+  readOnlyRootFilesystem: Boolean = true
+  seccompProfile: SeccompProfile
+  capabilities: Capabilities
+}
+
+class SeccompProfile {
+  /// Set Redis&reg; master containers' Security Context seccompProfile type
+  type: String = "RuntimeDefault"
+}
+
+class Capabilities {
+  /// Set Redis&reg; master containers' Security Context capabilities to drop
+  drop: Listing<String> = new Listing { "ALL" }
+}
+
+class UpdateStrategy {
+  /// Redis&reg; master statefulset strategy type
+  type: String = "RollingUpdate"
+}

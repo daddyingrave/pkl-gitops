@@ -1,0 +1,99 @@
+module Capybara
+
+import "@gitops-toolkit/src/apps/KustomizationApp.pkl"
+import "@gitops-toolkit/src/config/ConfigCtx.pkl"
+
+function App(_config: ConfigCtx): App = new {
+  config = _config
+}
+
+class App extends KustomizationApp {
+  appName = "capybara"
+
+  appValues: Values = new Values {
+    settings {
+      debug_mode = true
+      maximum_chaos = 100
+      enable_shenanigans = true
+      daily_routine = new Listing {
+        "swim"
+        "eat grass"
+        "nap in the sun"
+      }
+      evilness_level = "eternal"
+      friends = new Listing {
+        "kytty"
+        "doggy"
+        "duck"
+      }
+      recommended_naps_per_day = 4
+      trivia {
+        favorite_food = "watermelons"
+        number_of_teeth = 20
+        can_hold_breath_underwater_for_minutes = 5
+      }
+    }
+  }
+
+  patches: Listing<Mixin<App>>
+}
+
+const hidden render: JsonRenderer = new JsonRenderer { indent = "" }
+
+/// The settings for your all-important daily routine. Remember, without a daily routine, you might actually get things done!
+class Values {
+  settings: Settings
+
+  function toJson(): String = (render) { indent = "  " }.renderValue(this)
+
+  function toEnvVariablesPatch(path: String): String =
+    settings
+      .toMap()
+      .remove("trivia")
+      .map((key, value) -> Pair(key, """
+      - op: add
+        path: \(path)
+        value:
+          name: \(key.toUpperCase())
+          value: \(render.renderValue(value))
+      """))
+      .values
+      .join("\n")
+}
+
+class Settings {
+
+  /// Debug mode - because who doesn't love a good bug? Flipping this might make things explode.
+  debug_mode: Boolean
+
+  /// Maximum chaos - set this higher if you want to live dangerously. (But not recommended if you value your sanity.)
+  maximum_chaos: Int
+
+  /// Enable shenanigans - warning: enabling this may result in random acts of mischief. Viewer discretion is advised.
+  enable_shenanigans: Boolean
+
+  /// Your daily routine - because sticking to a routine is the key to happiness. Or so they say.
+  daily_routine: Listing<String>
+
+  /// List of friends - because even in the animal kingdom, it's not what you know, it's who you know.
+  friends: Listing<String>
+
+  trivia: Trivia
+
+  /// Evilness level - set to 'high' if you have dreams of world domination. Mwahahaha!
+  evilness_level: String
+
+  /// Recommended naps per day - if you're not napping at least this much, you're doing it wrong.
+  recommended_naps_per_day: Int
+}
+
+class Trivia {
+  /// Favorite food - because no great story ever started with someone eating a salad.
+  favorite_food: String
+
+  /// Number of teeth - because counting them is a lot easier than flossing them.
+  number_of_teeth: Int
+
+  /// Can hold breath underwater for minutes - because sometimes you just need a really long bath.
+  can_hold_breath_underwater_for_minutes: Int
+}

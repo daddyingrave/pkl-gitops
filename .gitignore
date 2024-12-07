@@ -1,0 +1,6 @@
+.idea
+*.iml
+.gradle
+build
+.pkl-lsp
+PklProject.deps.json

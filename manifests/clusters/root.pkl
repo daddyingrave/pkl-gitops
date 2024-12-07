@@ -1,0 +1,17 @@
+module base
+
+extends "@gitops-toolkit/src/GitOpsTemplate.pkl"
+
+import ".../definitions/apps/Capybara.pkl"
+import ".../definitions/apps/Podinfo.pkl"
+import ".../definitions/apps/Postgres.pkl"
+import ".../definitions/apps/Redis.pkl"
+
+configCtx {
+  mod = module
+}
+
+capybraApp: Capybara.App = Capybara.App(configCtx)
+podinfoApp: Podinfo.App = Podinfo.App(configCtx)
+postgresApp: Postgres.App = Postgres.App(configCtx)
+redisApp: Redis.App = Redis.App(configCtx)

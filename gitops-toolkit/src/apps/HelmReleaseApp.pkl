@@ -1,0 +1,34 @@
+open module HelmReleaseApp
+
+extends "AppTemplate.pkl"
+
+import "../../gen/io/fluxcd/toolkit/helm/HelmRelease.pkl"
+import "../../gen/io/fluxcd/toolkit/source/HelmRepository.pkl"
+import "../utils/Util.pkl"
+
+/// [HelmRepository] reference. Supposed to be deployed seprately in different namespace
+helmRepository: HelmRepository
+
+manifest: HelmRelease = (HelmRelease) {
+  metadata {
+    name = module.appName
+    namespace = module.config.namespace.name
+    labels {
+      ["app"] = module.appName
+    }
+  }
+  spec {
+    chart {
+      spec {
+        version = Util.readVersion(module.config.mod, module.appName)
+        sourceRef {
+          kind = helmRepository.kind
+          name = helmRepository.metadata.name!!
+          namespace = helmRepository.metadata.namespace!!
+        }
+      }
+    }
+    interval = "5s"
+    values = module.appValues
+  }
+}

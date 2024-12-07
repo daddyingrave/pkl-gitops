@@ -1,0 +1,19 @@
+amends "pkl:Project"
+
+package {
+  name = "gitops-toolkit"
+  baseUri = "package://example.com/my/gitops-toolkit"
+  packageZipUrl = "https://example.com/gitops-toolkit"
+  version = "0.0.1"
+}
+
+local versions = new {
+  pklK8s = "1.1.1"
+  k8sContribCrd = "1.0.13"
+}
+
+dependencies {
+  ["k8s"] { uri = "package://pkg.pkl-lang.org/pkl-k8s/k8s@\(versions.pklK8s)" }
+  ["crd"] { uri = "package://pkg.pkl-lang.org/pkl-pantry/k8s.contrib.crd@\(versions.k8sContribCrd)" }
+  //   ["crd"] = import("../../../pkl-pantry/packages/k8s.contrib.crd/PklProject")
+}

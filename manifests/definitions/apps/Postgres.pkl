@@ -1,0 +1,584 @@
+module Postgres
+
+import "@gitops-toolkit/src/apps/HelmReleaseApp.pkl"
+import "@gitops-toolkit/src/config/ConfigCtx.pkl"
+
+function App(_config: ConfigCtx): App = new {
+  config = _config
+}
+
+class App extends HelmReleaseApp {
+  appName = "postgres"
+
+  manifest {
+    spec {
+      chart {
+        spec {
+          chart = appName
+        }
+      }
+    }
+  }
+
+  appValues: Values = new {
+    metrics {
+      enabled = true
+    }
+  }
+
+  patches: Listing<Mixin<App>>
+}
+
+class Values {
+  global: Global
+  image: Image
+  postgresqlUsername: String
+  postgresqlPassword: String
+  postgresqlDatabase: String?
+  postgresqlReplicationPassword: String?
+  existingSecret: String?
+  usePasswordFiles: Boolean? = false
+  initdbScripts: Map<String, String>?
+  initdbScriptsConfigMap: String?
+  initdbScriptsSecret: String?
+  extendedConfiguration: ExtendedConfiguration
+  volumePermissions: VolumePermissions
+  shmVolume: ShmVolume
+  tls: TLS
+  readReplicas: ReadReplicas
+  primary: Primary
+  persistence: Persistence
+  service: Service
+  metrics: Metrics
+}
+
+class Global {
+  imageRegistry: String? = ""
+  imagePullSecrets: Listing<LocalObjectReference>?
+}
+
+class VolumePermissions {
+  /// Enable init container that changes the owner and group of the persistent volume mountpoint to runAsUser:fsGroup values
+  enabled: Boolean = false
+
+  /// Run init container as a privileged container
+  runAsUser: Int? = 0
+}
+
+class ShmVolume {
+  /// Add `/dev/shm` emptyDir volume to work around `/dev/shm` volume being missing in some Kubernetes environments. Note that this will not be used if `volumePermissions.enabled` is set.
+  enabled: Boolean = true
+
+  /// Size of the `/dev/shm` volume
+  sizeLimit: String = ""
+}
+
+class TLS {
+  /// Enable TLS traffic support
+  enabled: Boolean = false
+
+  /// Custom certificate to use
+  cert: String?
+
+  /// Custom certificate key to use
+  certKey: String = ""
+
+  /// Secret with the certificates. If set, it will replace both `tls.cert` and `tls.certKey`
+  existingSecret: String = ""
+
+  /// Key in the secret that stores the certificate
+  certFilename: String = "tls.crt"
+
+  /// Key in the secret that stores the certificate key
+  certKeyFilename: String = "tls.key"
+
+  /// Mount the secret as a file instead of using an environment variable
+  usePemFiles: Boolean = false
+}
+
+class ReadReplicas {
+  /// Number of read-only replicas
+  replicaCount: Int = 1
+
+  antiAffinity: AntiAffinity
+
+  containerPorts: ReadReplicasContainerPorts
+
+  /// Period to check for PostgreSQL server readiness
+  livenessProbe: LivenessProbe
+
+  /// Probe to check PostgreSQL server readiness
+  readinessProbe: ReadinessProbe
+
+  /// Probe to check PostgreSQL server readiness
+  startupProbe: StartupProbe
+}
+
+class AntiAffinity {
+  /// Configure node anti-affinity using built-in pod anti-affinity settings. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
+  topologyKey: String = "kubernetes.io/hostname"
+}
+
+class ReadReplicasContainerPorts {
+  /// PostgreSQL container port
+  postgresql: Int = 5432
+}
+
+class LivenessProbe {
+  /// Liveness probe initial delay
+  initialDelaySeconds: Int = 60
+
+  /// Liveness probe period
+  periodSeconds: Int = 10
+
+  /// Liveness probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Liveness probe success threshold
+  successThreshold: Int = 1
+
+  /// Liveness probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class ReadinessProbe {
+  /// Readiness probe initial delay
+  initialDelaySeconds: Int = 60
+
+  /// Readiness probe period
+  periodSeconds: Int = 10
+
+  /// Readiness probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Readiness probe success threshold
+  successThreshold: Int = 1
+
+  /// Readiness probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class StartupProbe {
+  /// Startup probe initial delay
+  initialDelaySeconds: Int = 60
+
+  /// Startup probe period
+  periodSeconds: Int = 10
+
+  /// Startup probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Startup probe success threshold
+  successThreshold: Int = 1
+
+  /// Startup probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class Primary {
+  extendedConfiguration: PrimaryExtendedConfiguration?
+  livenessProbe: PrimaryLivenessProbe
+  readinessProbe: PrimaryReadinessProbe
+  startupProbe: PrimaryStartupProbe
+}
+
+class PrimaryExtendedConfiguration {
+  /// PostgreSQL Primary pod affinity
+  affinity: Affinity
+}
+
+class Affinity {
+  nodeAffinity: NodeAffinity?
+  podAffinity: PodAffinity?
+  podAntiAffinity: PodAntiAffinity?
+}
+
+class NodeAffinity {
+  preferredDuringSchedulingIgnoredDuringExecution: Listing<PreferredSchedulingTerm>?
+  requiredDuringSchedulingIgnoredDuringExecution: NodeSelector?
+}
+
+class PreferredSchedulingTerm {
+  preference: NodeSelectorTerm
+  weight: Int
+}
+
+class NodeSelectorTerm {
+  matchExpressions: Listing<NodeSelectorRequirement>?
+  matchFields: Listing<NodeSelectorRequirement>?
+}
+
+class NodeSelectorRequirement {
+  key: String
+  operator: String
+  values: Listing<String>?
+}
+
+class NodeSelector {
+  nodeSelectorTerms: Listing<NodeSelectorTerm>
+}
+
+class PodAffinity {
+  preferredDuringSchedulingIgnoredDuringExecution: Listing<WeightedPodAffinityTerm>?
+  requiredDuringSchedulingIgnoredDuringExecution: Listing<PodAffinityTerm>?
+}
+
+class WeightedPodAffinityTerm {
+  podAffinityTerm: PodAffinityTerm
+  weight: Int
+}
+
+class PodAffinityTerm {
+  labelSelector: LabelSelector
+  namespaces: Listing<String>?
+  topologyKey: String
+}
+
+class LabelSelector {
+  matchExpressions: Listing<LabelSelectorRequirement>?
+  matchLabels: Map<String, String>?
+}
+
+class LabelSelectorRequirement {
+  key: String
+  operator: String
+  values: Listing<String>?
+}
+
+class PodAntiAffinity {
+  preferredDuringSchedulingIgnoredDuringExecution: Listing<WeightedPodAffinityTerm>?
+  requiredDuringSchedulingIgnoredDuringExecution: Listing<PodAffinityTerm>?
+}
+
+class PrimaryLivenessProbe {
+  /// Liveness probe initial delay
+  initialDelaySeconds: Int = 60
+
+  /// Liveness probe period
+  periodSeconds: Int = 10
+
+  /// Liveness probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Liveness probe success threshold
+  successThreshold: Int = 1
+
+  /// Liveness probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class PrimaryReadinessProbe {
+  /// Readiness probe initial delay
+  initialDelaySeconds: Int = 60
+
+  /// Readiness probe period
+  periodSeconds: Int = 10
+
+  /// Readiness probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Readiness probe success threshold
+  successThreshold: Int = 1
+
+  /// Readiness probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class PrimaryStartupProbe {
+  /// Startup probe initial delay
+  initialDelaySeconds: Int = 60
+
+  /// Startup probe period
+  periodSeconds: Int = 10
+
+  /// Startup probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Startup probe success threshold
+  successThreshold: Int = 1
+
+  /// Startup probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class Persistence {
+  /// Enable PostgreSQL data persistence using PVC(s)
+  enabled: Boolean = true
+
+  /// Path to mount the volume at
+  mountPath: String = "/bitnami/postgresql"
+
+  /// Storage Class to use for the PVC
+  storageClass: String = ""
+
+  /// Custom labels for the PVC(s)
+  labels: Map<String, String>?
+
+  /// Custom annotations for the PVC(s)
+  annotations: Map<String, String>?
+
+  /// Size of the PVC(s)
+  size: String = "8Gi"
+
+  /// Selector to match an existing Persistent Volume (this value is evaluated as a template)
+  selector: Selector?
+
+  /// Additional list of claims to be created
+  additionalDataSources: Listing<AdditionalDataSource>?
+}
+
+class Selector {
+  matchExpressions: Listing<SelectorRequirement>?
+}
+
+class SelectorRequirement {
+  key: String
+  operator: String
+  values: Listing<String>?
+}
+
+class AdditionalDataSource {
+  /// Name of the PVC to create
+  name: String
+
+  /// Storage class of the PVC to create
+  storageClass: String
+
+  /// Size of the PVC to create
+  size: String
+
+  /// Path where to mount the additional volume
+  mountPath: String
+
+  /// Volume mode of the PVC to create
+  volumeMode: String
+
+  /// Access mode of the PVC to create
+  accessModes: Listing<String>
+}
+
+class Service {
+  ports: ServicePorts
+}
+
+class ServicePorts {
+  /// PostgreSQL service port
+  postgresql: Int = 5432
+}
+
+class Metrics {
+  /// Start a side-car prometheus exporter
+  enabled: Boolean = false
+
+  service: MetricsService
+  resources: MetricsResources
+  livenessProbe: MetricsLivenessProbe
+  readinessProbe: MetricsReadinessProbe
+  startupProbe: MetricsStartupProbe
+}
+
+class MetricsService {
+  ports: MetricsServicePorts
+}
+
+class MetricsServicePorts {
+  /// Prometheus metrics exporter port
+  metrics: Int = 9187
+}
+
+class MetricsResources {
+  /// CPU and Memory resources for Prometheus exporter container
+  limits: ResourceLimits
+  requests: ResourceRequests
+}
+
+class ResourceLimits {
+  cpu: String?
+  memory: String?
+}
+
+class ResourceRequests {
+  cpu: String?
+  memory: String?
+}
+
+class MetricsLivenessProbe {
+  /// Liveness probe initial delay
+  initialDelaySeconds: Int = 30
+
+  /// Liveness probe period
+  periodSeconds: Int = 10
+
+  /// Liveness probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Liveness probe success threshold
+  successThreshold: Int = 1
+
+  /// Liveness probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class MetricsReadinessProbe {
+  /// Readiness probe initial delay
+  initialDelaySeconds: Int = 5
+
+  /// Readiness probe period
+  periodSeconds: Int = 10
+
+  /// Readiness probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Readiness probe success threshold
+  successThreshold: Int = 1
+
+  /// Readiness probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class MetricsStartupProbe {
+  /// Startup probe initial delay
+  initialDelaySeconds: Int = 30
+
+  /// Startup probe period
+  periodSeconds: Int = 10
+
+  /// Startup probe timeout
+  timeoutSeconds: Int = 1
+
+  /// Startup probe success threshold
+  successThreshold: Int = 1
+
+  /// Startup probe failure threshold
+  failureThreshold: Int = 6
+}
+
+class ExtendedConfiguration {
+  /// Init containers to add to the StatefulSet
+  initContainers: Listing<Container>?
+
+  /// Sidecar containers to add to the StatefulSet
+  sidecars: Listing<Container>?
+
+  /// Extra containers to add to the StatefulSet
+  extraContainers: Listing<Container>?
+
+  /// Pod labels
+  podLabels: Map<String, String>?
+
+  /// Pod annotations
+  podAnnotations: Map<String, String>?
+
+  /// Tolerations for the pods
+  tolerations: Listing<Toleration>?
+
+  /// Additional pod security context
+  podSecurityContext: SecurityContext?
+
+  /// Additional container security context
+  containerSecurityContext: SecurityContext?
+}
+
+class Container {
+  /// Container name
+  name: String = ""
+
+  /// Container image
+  image: String = ""
+
+  /// Image pull policy
+  imagePullPolicy: String = "IfNotPresent"
+
+  /// List of environment variables to set in the container
+  env: Listing<EnvVar>?
+
+  /// List of ports to expose from the container
+  ports: Listing<ContainerPort>?
+
+  /// List of volume mounts to add to the container
+  volumeMounts: Listing<VolumeMount>?
+
+  /// Container resource requests and limits
+  resources: Resources
+
+  /// Security context for the container
+  securityContext: SecurityContext?
+}
+
+class EnvVar {
+  /// Name of the environment variable
+  name: String = ""
+
+  /// Value of the environment variable
+  value: String = ""
+}
+
+class ContainerPort {
+  /// Name of the port
+  name: String = ""
+
+  /// Port number to expose
+  containerPort: Int = 0
+}
+
+class VolumeMount {
+  /// Name of the volume to mount
+  name: String = ""
+
+  /// Path where to mount the volume
+  mountPath: String = ""
+}
+
+class Resources {
+  /// CPU and memory resource requests and limits
+  limits: ResourceLimits?
+  requests: ResourceRequests?
+}
+
+class SecurityContext {
+  runAsUser: Int?
+  runAsGroup: Int?
+  fsGroup: Int?
+  capabilities: Capabilities?
+  seLinuxOptions: SELinuxOptions?
+  runAsNonRoot: Boolean?
+}
+
+class Capabilities {
+  add: Listing<String>?
+  drop: Listing<String>?
+}
+
+class SELinuxOptions {
+  level: String?
+  role: String?
+  type: String?
+  user: String?
+}
+
+class Toleration {
+  effect: String?
+  key: String?
+  operator: String?
+  tolerationSeconds: Int?
+  value: String?
+}
+
+class Image {
+  /// PostgreSQL image name
+  repository: String = "bitnami/postgresql"
+
+  /// PostgreSQL image tag
+  tag: String = "latest"
+
+  /// Image pull policy
+  pullPolicy: String = "IfNotPresent"
+
+  /// Use a specific Docker pull secret
+  pullSecrets: Listing<LocalObjectReference>?
+}
+
+class LocalObjectReference {
+  /// Name of the referent
+  name: String? = ""
+}

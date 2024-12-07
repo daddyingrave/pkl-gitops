@@ -1,0 +1,28 @@
+module Util
+
+import "package://pkg.pkl-lang.org/pkl-k8s/k8s@1.1.1#/apimachinery/pkg/apis/meta/v1/ObjectMeta.pkl"
+import "pkl:reflect"
+import "pkl:yaml"
+import "../config/ConfigCtx.pkl"
+
+/// Reads version from versions.yaml file
+function readVersion(mod: Module, appName: String): String =
+  // @formatter:off
+  let (
+    versionsPath = reflect.Module(mod).uri
+      .split("/")
+      .dropLast(1)
+      .join("/") + "/versions.yaml"
+  )
+  new yaml.Parser { useMapping = true }
+    .parse(read(versionsPath))
+    .toMap()[appName]["version"]
+  as String
+  // @formatter:on
+
+/// Constructs path where rendered application manifests will be put
+function appOutputPath(params: ConfigCtx.Cluster, meta: ObjectMeta, kind: String): String =
+  "\(params.tier)" +
+    "/\(params.name)" +
+    "/\(meta.namespace)" +
+    "/\(meta.name)-\(kind.toLowerCase()).yaml"
