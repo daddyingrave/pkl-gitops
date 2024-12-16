@@ -1,0 +1,72 @@
+// Numbers
+
+num1 = 123
+num2 = 1_2_3
+
+// Boolean
+
+eq = num1 == num2
+
+and = true && true
+or = true || false
+xor = true.xor(false)
+
+// Strings
+
+hellString = "Hell"
+interpolatedHellString = "Hello \(hellString) and \(num1 + num2)"
+multiline = """
+  1 1 1 1
+  2 2 2 2
+  3 3 3 3
+  4 4 4 4
+  """
+
+// Data size
+
+kylobait = 5.kb
+megobait = 5.mb
+sum = kylobait + megobait
+
+// Objects
+
+obj {
+  key = "value"
+  key2 = "value"
+}
+
+// Objects amending
+
+breakfast {
+  age = 3.d
+}
+
+hungryMe {
+  food = (breakfast) {
+    tea = "green"
+  }
+}
+
+// Late binding
+
+consumed {
+  vodka = 0
+  plov = vodka * 2
+}
+
+consumedMore = (consumed) {
+  vodka = 10
+}
+
+// Listings
+
+list1 = new Listing { 1 2 3 }
+list1Update = (list1) { "hello" }
+listIndexAccess = list1Update[3]
+
+// Mappings
+
+mapping1 = new Mapping {
+  ["key"] = 1
+  [1] = "key"
+}
