@@ -1,0 +1,8 @@
+podinfo:
+  version: 7.8.1
+postgres:
+  version: 16.2.2
+redis:
+  version: 20.3.0
+capybara:
+  version: 6.6.6

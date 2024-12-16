@@ -1,0 +1,37 @@
+amends ".../root.pkl"
+
+import "_patches/Capybara.pkl"
+import "_patches/Podinfo.pkl"
+import "_patches/Postgres.pkl"
+import "_patches/Redis.pkl"
+
+configCtx {
+  registry = "registry.cluster1.com:443"
+}
+
+podinfoApp {
+  appValues {
+    replicaCount = 6
+  }
+  patches {
+    Podinfo.patch
+  }
+}
+
+capybraApp {
+  patches {
+    Capybara.patch
+  }
+}
+
+postgresApp {
+  patches {
+    Postgres.patch
+  }
+}
+
+redisApp {
+  patches {
+    Redis.patch
+  }
+}

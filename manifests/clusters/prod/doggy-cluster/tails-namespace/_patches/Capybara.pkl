@@ -1,0 +1,11 @@
+import ".../definitions/apps/Capybara.pkl"
+
+patch: Mixin<Capybara.App> = ((it) ->
+    (it) {
+      appValues {
+        settings {
+
+        }
+      }
+    }
+  )

@@ -1,0 +1,5 @@
+amends "namespace.pkl"
+
+output {
+  files = module.filesToRender()
+}

@@ -1,4 +1,4 @@
-module base
+module root
 
 extends "@gitops-toolkit/src/GitOpsTemplate.pkl"
 

@@ -1,0 +1,16 @@
+import ".../definitions/apps/Capybara.pkl"
+
+patch: Mixin<Capybara.App> = ((it) ->
+    (it) {
+      configSource = "ConfigMap"
+      appValues {
+        settings {
+          maximum_chaos = 777
+          daily_routine {
+            "ride a bicicle"
+            "pet a cat"
+          }
+        }
+      }
+    }
+  )

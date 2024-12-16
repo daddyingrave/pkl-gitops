@@ -1,0 +1,57 @@
+amends ".../cluster.pkl"
+
+import "@gitops-toolkit/gen/io/fluxcd/toolkit/helm/HelmRelease.pkl"
+import "@gitops-toolkit/src/GitOpsTemplate.pkl"
+import "_patches/Capybara.pkl"
+import "_patches/Podinfo.pkl"
+import "_patches/Postgres.pkl"
+import "_patches/Redis.pkl"
+
+local postgresSecret = new GitOpsTemplate.SopsSecret {
+  metadata {
+    name = "postgres-db-credentials"
+    namespace = module.configCtx.namespace.name
+  }
+}
+
+podinfoApp { patches { Podinfo.patch } }
+
+capybraApp {
+  patches {
+    Capybara.patch
+  }
+  appValues {
+    settings {
+      daily_routine {
+        "qweqwe"
+      }
+    }
+  }
+}
+
+postgresApp {
+  patches {
+    (Postgres.patch) {
+      manifest {
+        spec {
+          valuesFrom {
+            new HelmRelease.ValuesFrom {
+              kind = postgresSecret.kind
+              name = postgresSecret.metadata.name!!
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+redisApp {
+  patches {
+    Redis.patch
+  }
+}
+
+sopsSecrets {
+  postgresSecret
+}

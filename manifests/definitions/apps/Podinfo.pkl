@@ -13,7 +13,11 @@ class App extends HelmReleaseApp {
   config {}
 
   appValues: Values = new {
+    replicaCount = 3
+    logLevel = "warn"
+    host = "127.0.0.1"
     ui {
+      color = "#34577c"
       message = if (config.cluster.name.startsWith("kitty")) "🙀" else "🐶"
     }
   }
@@ -35,17 +39,17 @@ class Values {
   /// Specifies the number of replicas for the pod. This value controls the scaling behavior. Adjusting this can help
   /// balance load and availability. Increasing the count can improve redundancy. Decreasing the count can reduce
   /// resource usage.
-  replicaCount: Int = 3
+  replicaCount: Int
 
   /// Defines the logging level for the application.
   /// This setting controls the verbosity of the logs. Useful for troubleshooting and monitoring. Defaults to
   /// "warn" if not specified.
-  logLevel: ("trace"|"debug"|"info"|"warn"|"error")? = "warn"
+  logLevel: ("trace"|"debug"|"info"|"warn"|"error")?
 
   /// The hostname for the pod. This can be used for DNS resolution within the network. Useful for services that require
   /// a stable endpoint. If not specified, the hostname may default to a generated name. Helps in identifying and
   /// managing the pod.
-  host: String = "127.0.0.1"
+  host: String
 
   /// Backend service URL for the pod. This is the primary endpoint for backend communication. Can be used to direct
   /// traffic to a specific service. Must be a valid URL if specified. Helps in routing requests appropriately.

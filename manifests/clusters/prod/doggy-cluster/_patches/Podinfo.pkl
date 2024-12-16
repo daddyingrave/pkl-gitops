@@ -1,0 +1,7 @@
+import ".../definitions/apps/Podinfo.pkl"
+
+patch: Mixin<Podinfo.App> = ((it) ->
+    (it) {
+
+    }
+  )

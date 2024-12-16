@@ -1,0 +1,17 @@
+import ".../definitions/apps/Postgres.pkl"
+
+patch: Mixin<Postgres.App> = ((it) ->
+    (it) {
+      appValues {
+        postgresqlUsername = "postgres123"
+        postgresqlPassword = ""
+        metrics {
+          service {
+            ports {
+              metrics = 6666
+            }
+          }
+        }
+      }
+    }
+  )

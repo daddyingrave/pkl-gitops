@@ -1,0 +1,7 @@
+import ".../definitions/apps/Postgres.pkl"
+
+patch: Mixin<Postgres.App> = ((it) ->
+    (it) {
+
+    }
+  )

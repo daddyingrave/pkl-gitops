@@ -1,0 +1,14 @@
+amends "namespace.pkl"
+
+import "@gitops-toolkit/src/automation/Automations.pkl"
+
+apps {
+  module.podinfoApp
+  module.capybraApp |> Automations.withAutomation
+  module.postgresApp |> Automations.withAutomation
+  module.redisApp |> Automations.withAutomation
+}
+
+output {
+  files = module.filesToRender()
+}

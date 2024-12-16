@@ -1,0 +1,52 @@
+amends ".../tier.pkl"
+
+import ".../definitions/repositories/Helm.pkl"
+import "_patches/Capybara.pkl"
+import "_patches/Podinfo.pkl"
+import "_patches/Postgres.pkl"
+import "_patches/Redis.pkl"
+
+configCtx {}
+
+helmRepos {
+  [Helm.BitnamiRepositoryName] = (Helm.Bitnami(configCtx)) {
+    metadata {
+      namespace = "flux-system"
+    }
+  }
+  [Helm.PodInfoRepositoryName] = (Helm.Podinfo(configCtx)) {
+    metadata {
+      namespace = "flux-system"
+    }
+  }
+}
+
+podinfoApp {
+  appValues {
+    replicaCount = 88
+  }
+  patches {
+    Podinfo.patch
+  }
+  helmRepository = helmRepos[Helm.PodInfoRepositoryName]
+}
+
+capybraApp {
+  patches {
+    Capybara.patch
+  }
+}
+
+postgresApp {
+  patches {
+    Postgres.patch
+  }
+  helmRepository = helmRepos[Helm.BitnamiRepositoryName]
+}
+
+redisApp {
+  patches {
+    Redis.patch
+  }
+  helmRepository = helmRepos[Helm.BitnamiRepositoryName]
+}
